@@ -225,8 +225,33 @@ function setupEventListeners() {
 
     // Export & Clipboard actions
     DOM.btnCopyAll.addEventListener('click', () => copyActiveMetadataToClipboard());
-    DOM.exportJson.addEventListener('click', () => exportActiveMetadata('json'));
-    DOM.exportTxt.addEventListener('click', () => exportActiveMetadata('txt'));
+    
+    DOM.btnExportDropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const content = DOM.exportJson.parentElement;
+        if (content) {
+            content.classList.toggle('show');
+        }
+    });
+
+    DOM.exportJson.addEventListener('click', () => {
+        exportActiveMetadata('json');
+        const content = DOM.exportJson.parentElement;
+        if (content) content.classList.remove('show');
+    });
+
+    DOM.exportTxt.addEventListener('click', () => {
+        exportActiveMetadata('txt');
+        const content = DOM.exportTxt.parentElement;
+        if (content) content.classList.remove('show');
+    });
+
+    document.addEventListener('click', (e) => {
+        const dropdown = DOM.exportJson.parentElement;
+        if (dropdown && !dropdown.contains(e.target) && e.target !== DOM.btnExportDropdown) {
+            dropdown.classList.remove('show');
+        }
+    });
 
     // Keyboard navigation
     window.addEventListener('keydown', (e) => {

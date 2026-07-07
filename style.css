@@ -771,7 +771,7 @@ body.light-theme .btn-theme .moon-icon {
     color: var(--accent);
 }
 
-.dropdown:hover .dropdown-content {
+.dropdown-content.show {
     display: block;
 }
 
