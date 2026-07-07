@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scope // File Metadata Inspector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- External libraries for Metadata extraction & Icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="dark-theme">
+    <div class="glow-bg"></div>
+    <div class="app-layout">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-box">
+                    <i data-lucide="shield-alert" class="logo-icon"></i>
+                </div>
+                <div>
+                    <h1>Scope</h1>
+                    <span class="subtitle">Digital Forensics & Metadata Inspector</span>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <button id="theme-toggle" class="btn-theme" aria-label="Toggle light/dark theme">
+                    <i data-lucide="sun" class="sun-icon"></i>
+                    <i data-lucide="moon" class="moon-icon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTAINER -->
+        <main class="app-main">
+            <!-- LEFT PANEL: Upload & History -->
+            <section class="left-panel">
+                <!-- Dropzone Card -->
+                <div class="card glass dropzone-card">
+                    <div id="dropzone" class="dropzone">
+                        <input type="file" id="file-input" multiple accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,application/pdf" hidden>
+                        <div class="dropzone-content">
+                            <div class="upload-icon-container">
+                                <i data-lucide="upload-cloud" class="upload-icon"></i>
+                            </div>
+                            <h3>Analyze New Files</h3>
+                            <p class="dropzone-desc">Drag and drop files here, or click to browse</p>
+                            <span class="file-limits">Supports JPG, PNG, WEBP, GIF, PDF (Max 15MB)</span>
+                            <button id="browse-btn" class="btn-primary">Browse Files</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files List Queue -->
+                <div class="card glass list-card">
+                    <div class="card-header">
+                        <div class="title-with-count">
+                            <i data-lucide="layers" class="panel-icon"></i>
+                            <h2>Current Queue</h2>
+                            <span id="queue-count" class="badge">0</span>
+                        </div>
+                        <button id="clear-queue-btn" class="btn-text" title="Clear current queue">
+                            <i data-lucide="trash-2" class="icon-small"></i> Clear
+                        </button>
+                    </div>
+                    <div id="queue-list" class="queue-list empty">
+                        <div class="empty-state-list">
+                            <p>No active files loaded</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Panel -->
+                <div class="card glass history-card">
+                    <div class="card-header">
+                        <div class="title-with-count">
+                            <i data-lucide="history" class="panel-icon"></i>
+                            <h2>Inspection History</h2>
+                            <span id="history-count" class="badge">0</span>
+                        </div>
+                        <button id="clear-history-btn" class="btn-text" title="Clear all saved history">
+                            <i data-lucide="trash-2" class="icon-small"></i> Reset
+                        </button>
+                    </div>
+                    <div id="history-list" class="history-list empty">
+                        <div class="empty-state-list">
+                            <p>No history found</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT PANEL: File Inspector (Preview, Analytics, Dashboard) -->
+            <section class="right-panel">
+                <!-- Select File Prompt (Default view) -->
+                <div id="no-file-selected" class="card glass empty-dashboard">
+                    <div class="radar-box">
+                        <div class="radar-wave"></div>
+                        <div class="radar-wave"></div>
+                        <div class="radar-wave"></div>
+                        <i data-lucide="search-code" class="radar-icon"></i>
+                    </div>
+                    <h2>Metadata Forensic Engine</h2>
+                    <p>Select or upload a file to perform a metadata extraction and privacy scan.</p>
+                </div>
+
+                <!-- Active Dashboard -->
+                <div id="dashboard-active" class="dashboard-grid" style="display: none;">
+                    <!-- Active File Info Title -->
+                    <div class="dashboard-header-bar col-span-2">
+                        <div class="active-file-details">
+                            <div class="file-type-icon-wrapper" id="active-file-icon-bg">
+                                <i data-lucide="file" id="active-file-icon"></i>
+                            </div>
+                            <div>
+                                <h2 id="active-file-name">filename.jpg</h2>
+                                <div class="badge-row">
+                                    <span id="active-file-size" class="badge badge-secondary">2.4 MB</span>
+                                    <span id="active-file-type" class="badge badge-accent">image/jpeg</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="active-actions">
+                            <button id="btn-copy-all" class="btn-secondary" title="Copy all metadata to clipboard">
+                                <i data-lucide="copy" class="icon-btn"></i> Copy All
+                            </button>
+                            <div class="dropdown">
+                                <button id="btn-export-dropdown" class="btn-primary">
+                                    <i data-lucide="download" class="icon-btn"></i> Export <i data-lucide="chevron-down" class="icon-btn"></i>
+                                </button>
+                                <div class="dropdown-content">
+                                    <button id="export-json"><i data-lucide="file-json"></i> JSON Format</button>
+                                    <button id="export-txt"><i data-lucide="file-text"></i> Text Report</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 1: Live Preview -->
+                    <div class="card glass preview-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="eye" class="card-icon"></i>
+                                <h3>File Preview</h3>
+                            </div>
+                            <div class="preview-controls">
+                                <button id="zoom-out-btn" class="btn-control" title="Zoom Out"><i data-lucide="zoom-out"></i></button>
+                                <span id="zoom-percentage" class="zoom-value">100%</span>
+                                <button id="zoom-in-btn" class="btn-control" title="Zoom In"><i data-lucide="zoom-in"></i></button>
+                                <button id="zoom-fit-btn" class="btn-control" title="Fit to screen"><i data-lucide="maximize-2"></i></button>
+                                <button id="fullscreen-btn" class="btn-control highlight" title="Fullscreen Preview"><i data-lucide="expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="preview-viewport" id="preview-viewport">
+                            <!-- Previews injected here -->
+                            <img id="image-preview" src="" alt="Metadata Preview" style="display: none;" />
+                            <canvas id="pdf-preview-canvas" style="display: none;"></canvas>
+                            <div class="pdf-navigation" id="pdf-nav" style="display: none;">
+                                <button id="pdf-prev" class="btn-control"><i data-lucide="chevron-left"></i></button>
+                                <span class="pdf-page-indicator">Page <span id="pdf-current-page">1</span> of <span id="pdf-total-pages">1</span></span>
+                                <button id="pdf-next" class="btn-control"><i data-lucide="chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Security & Privacy Insights -->
+                    <div class="card glass insights-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="shield-check" class="card-icon text-success"></i>
+                                <h3>Forensic Insights</h3>
+                            </div>
+                        </div>
+                        <div class="insights-body">
+                            <div class="metric-row">
+                                <div class="metric-box">
+                                    <span class="metric-label">Compression</span>
+                                    <span class="metric-value" id="insight-compression">-</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Metadata Count</span>
+                                    <span class="metric-value" id="insight-fields-count">0</span>
+                                </div>
+                                <div class="metric-box">
+                                    <span class="metric-label">Privacy Risk</span>
+                                    <span class="metric-value score" id="insight-privacy-score">Safe</span>
+                                </div>
+                            </div>
+                            
+                            <div class="privacy-checklist">
+                                <h4>Security & Privacy Audit</h4>
+                                <ul id="audit-list">
+                                    <li><i data-lucide="circle-slash" class="audit-icon"></i> Loading insights...</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Detailed Metadata Table (Spans full width or bottom grid) -->
+                    <div class="card glass metadata-card col-span-2">
+                        <div class="metadata-controls">
+                            <!-- Tabs -->
+                            <div class="tabs">
+                                <button class="tab-btn active" data-tab="all">All Metadata</button>
+                                <button class="tab-btn" data-tab="general">General</button>
+                                <button class="tab-btn" data-tab="technical">Technical</button>
+                                <button class="tab-btn" data-tab="gps">GPS & Location</button>
+                            </div>
+                            
+                            <!-- Search -->
+                            <div class="search-box">
+                                <i data-lucide="search" class="search-icon"></i>
+                                <input type="text" id="metadata-search" placeholder="Filter metadata parameters...">
+                                <button id="clear-search" class="clear-search-btn" style="display: none;"><i data-lucide="x"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div class="metadata-table-wrapper">
+                            <table class="metadata-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 30%;">Metadata Property</th>
+                                        <th style="width: 55%;">Value</th>
+                                        <th style="width: 15%;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="metadata-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                            <div id="no-search-results" class="no-results" style="display: none;">
+                                <i data-lucide="filter-x"></i>
+                                <p>No matching metadata parameters found for your search query</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- FULLSCREEN MODAL OVERLAY -->
+    <div id="fullscreen-overlay" class="fullscreen-overlay" style="display: none;">
+        <button id="close-fullscreen-btn" class="close-fullscreen-btn"><i data-lucide="x"></i></button>
+        <div class="fullscreen-content-viewport" id="fullscreen-content-viewport">
+            <!-- Cloned image/canvas goes here -->
+        </div>
+    </div>
+
+    <!-- MAIN SCRIPT -->
+    <script src="script.js"></script>
+</body>
+</html>
